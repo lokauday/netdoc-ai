@@ -1,11 +1,22 @@
 import os
 import json
+import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# Load API key from .env
+# Load environment variables locally
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Load cloud secret if deployed on Streamlit Cloud
+api_key = (
+    st.secrets["OPENAI_API_KEY"]
+    if "OPENAI_API_KEY" in st.secrets
+    else os.getenv("OPENAI_API_KEY")
+)
+
+# Initialize OpenAI client
+client = OpenAI(api_key=api_key)
+
 
 
 def read_file(path: str) -> str:

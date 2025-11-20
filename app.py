@@ -1,87 +1,66 @@
-import json
-from io import BytesIO
-
 import streamlit as st
-import markdown as md
-from docx import Document
+from utils.parser import parse_config
+from utils.report import build_markdown_report, build_html_report
 
-from main import build_prompt, call_openai, build_markdown_report
-
-
-st.set_page_config(
-    page_title="NetDoc Agent",
-    page_icon="⚡",
-    layout="wide",
-)
+st.set_page_config(page_title="NetDoc AI", layout="wide")
 
 st.title("⚡ Network Documentation AI Agent")
-st.write("Upload Cisco configs (`show run`, `show vlan`, `show ip int brief`, `show cdp nei`, etc.) and generate a full documentation report.")
+st.write("Upload Cisco configs (`show run`, `show vlan`, `show ip int brief`, `show cdp nei`, `show version`) and generate documentation.")
 
 
 uploaded_files = st.file_uploader(
-    "Upload one or more CLI output files",
-    type=["txt", "log", "cfg"],
+    "Upload one or more config files",
+    type=["txt", "cfg", "log"],
     accept_multiple_files=True,
-    help="You can export 'show run' and other commands to text files and upload them here.",
+    help="You can export CLI output from switches/routers and upload them here."
 )
 
-generate_button = st.button("🚀 Generate Documentation")
+if uploaded_files:
+    if st.button("Generate Documentation Report"):
+        # Combine all uploaded files into one big text blob
+        combined = ""
+        for f in uploaded_files:
+            try:
+                text = f.read().decode("utf-8", errors="ignore")
+            except Exception:
+                text = ""
+            combined += f"\n\n# FILE: {f.name}\n"
+            combined += text
 
+        with st.spinner("Analyzing config and generating report..."):
+            data = parse_config(combined)
+            md_report = build_markdown_report(data)
+            html_report = build_html_report(data)
 
-if uploaded_files and generate_button:
-    # Combine all files into one big text
-    all_text = ""
-    for f in uploaded_files:
-        file_content = f.read().decode("utf-8", errors="ignore")
-        all_text += f"\n\n# FILE: {f.name}\n"
-        all_text += file_content
+        st.success("Report generated successfully!")
 
-    with st.spinner("Calling AI and generating documentation..."):
-        prompt = build_prompt(all_text)
-        json_text = call_openai(prompt)
-        data = json.loads(json_text)
-        md_report = build_markdown_report(data)
+        # Show a preview of the Markdown report in the app
+        st.subheader("📄 Report Preview (Markdown)")
+        st.markdown(md_report)
 
-    st.success("✅ Documentation generated!")
+        # Download buttons
+        st.subheader("⬇️ Download Report Files")
+        col1, col2 = st.columns(2)
 
-    # Show the markdown report in the app
-    st.subheader("📄 Generated Report (Preview)")
-    st.markdown(md_report)
+        with col1:
+            st.download_button(
+                label="Download Markdown (.md)",
+                data=md_report,
+                file_name="netdoc_report.md",
+                mime="text/markdown"
+            )
 
-    # Prepare downloads
-    # 1) Markdown
-    st.download_button(
-        "⬇️ Download Markdown (.md)",
-        data=md_report,
-        file_name="network_documentation.md",
-        mime="text/markdown",
-    )
+        with col2:
+            st.download_button(
+                label="Download HTML (.html)",
+                data=html_report,
+                file_name="netdoc_report.html",
+                mime="text/html"
+            )
 
-    # 2) HTML (convert markdown to HTML)
-    html_report = md.markdown(md_report)
-
-    st.download_button(
-        "⬇️ Download HTML (.html)",
-        data=html_report,
-        file_name="network_documentation.html",
-        mime="text/html",
-    )
-
-    # 3) DOCX (Word)
-    docx_buffer = BytesIO()
-    document = Document()
-    for line in md_report.splitlines():
-        document.add_paragraph(line)
-    document.save(docx_buffer)
-    docx_buffer.seek(0)
-
-    st.download_button(
-        "⬇️ Download Word (.docx)",
-        data=docx_buffer,
-        file_name="network_documentation.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
-
-    st.info("💡 To get a PDF, open the HTML or DOCX file and use **Print → Save as PDF** from your browser or Word.")
+        st.info(
+            "💡 Tip: Open the HTML file in a browser and use **Print → Save as PDF** "
+            "to get a PDF version of the report."
+        )
 else:
-    st.caption("Upload at least one config file and click **Generate Documentation**.")
+    st.info("Upload at least one config file to get started.")
