@@ -3,3 +3,5 @@ openai
 python-dotenv
 markdown
 python-docx
+reportlab
+jinja2
