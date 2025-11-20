@@ -1,27 +1,36 @@
 import os
 import json
+import textwrap
 import streamlit as st
 from openai import OpenAI
 from utils.parser import parse_config
 from fpdf import FPDF
 
 # ----------- LOAD API KEY FROM SECRETS OR LOCAL ENV -----------
+
 api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
-# ----------- PDF GENERATOR (FPDF – Works on Streamlit Cloud) -----------
+# ----------- SAFE PDF GENERATOR (NO ERRORS, WORKS ON CLOUD) -----------
+
 def generate_pdf(markdown_text):
     pdf = FPDF()
-    pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", size=10)
 
-    pdf.set_font("Arial", size=12)
+    lines = markdown_text.split("\n")
 
-    for line in markdown_text.split("\n"):
-        pdf.multi_cell(0, 8, line)
+    for line in lines:
+        wrapped = textwrap.wrap(line, width=90)
 
-    return pdf.output(dest="S").encode("latin1")
+        if not wrapped:
+            pdf.ln(5)
+        else:
+            for w in wrapped:
+                pdf.multi_cell(0, 5, w)
 
+    return pdf.output(dest="S").encode("latin-1")
 
 # ---------------- STREAMLIT UI ----------------
 
@@ -48,12 +57,13 @@ if st.button("Generate Documentation") and uploaded_files:
     st.success("Report generated successfully!")
     st.json(result)
 
-    # Convert dict → markdown
+    # Convert dict → readable markdown
     md_report = json.dumps(result, indent=2)
 
-    # Generate PDF
+    # Create PDF bytes
     pdf_bytes = generate_pdf(md_report)
 
+    # Download Button
     st.download_button(
         "📥 Download PDF Report",
         data=pdf_bytes,
