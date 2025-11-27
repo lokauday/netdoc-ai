@@ -1,6 +1,6 @@
 streamlit
 openai
+python-dotenv
 reportlab
 python-docx
-markdown
-pyyaml
+markdown-it-py
