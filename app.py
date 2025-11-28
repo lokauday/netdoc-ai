@@ -91,7 +91,7 @@ with st.sidebar:
     st.markdown("<div class='sidebar-title'>📂 Navigation</div>", unsafe_allow_html=True)
     page = st.radio(
         "",
-        ["Upload", "Documentation", "Security Audit", "Topology", "Exports", "About"]
+        ["Home", "Upload", "Documentation", "Security Audit", "Topology", "Exports", "About"]
     )
 
 # -----------------------------------------------------------
@@ -105,9 +105,116 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------
+# PAGE: HOME (SaaS LANDING PAGE)
+# -----------------------------------------------------------
+if page == "Home":
+
+    st.markdown("""
+    <div class="card" style="text-align:center; padding:50px;">
+        <h1 style="color:#5b9bff; font-size:42px; margin-bottom:10px;">
+            ⚡ NetDoc AI
+        </h1>
+        <p style="color:#d9d9d9; font-size:20px; max-width:700px; margin:auto;">
+            The next-generation AI engine that converts raw router & switch configs 
+            into professional documentation, audits, and topology maps — instantly.
+        </p>
+
+        <img src="logo.png" style="width:160px; margin-top:25px; 
+        box-shadow: 0 0 30px #5b9bff60; border-radius:12px;">
+        
+        <div style="margin-top:35px;">
+            <a href="#" onclick="window.location.reload()" 
+               style="background:#5b9bff; padding:12px 25px; 
+               border-radius:8px; color:black; font-weight:700; text-decoration:none;">
+               🚀 Get Started
+            </a>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ------------ FEATURES GRID -------------
+    st.markdown("""
+    <div class="card">
+        <h3>🔥 Why Choose NetDoc AI?</h3>
+
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+
+            <div style="flex:1; min-width:250px; background:#1d1f23; 
+                        padding:20px; border-radius:10px; border:1px solid #333;">
+                <h4 style="color:#8ab4ff;">⚙️ Instant Documentation</h4>
+                <p>Upload configs → AI generates professional network documentation automatically.</p>
+            </div>
+
+            <div style="flex:1; min-width:250px; background:#1d1f23; 
+                        padding:20px; border-radius:10px; border:1px solid #333;">
+                <h4 style="color:#8ab4ff;">🛡 Security Audit</h4>
+                <p>Detect weak passwords, STP issues, ACL gaps, VLAN leaks, and misconfigurations.</p>
+            </div>
+
+            <div style="flex:1; min-width:250px; background:#1d1f23; 
+                        padding:20px; border-radius:10px; border:1px solid #333;">
+                <h4 style="color:#8ab4ff;">🌐 Topology Mapping</h4>
+                <p>AI generates live topology diagrams using Mermaid graph format.</p>
+            </div>
+
+            <div style="flex:1; min-width:250px; background:#1d1f23; 
+                        padding:20px; border-radius:10px; border:1px solid #333;">
+                <h4 style="color:#8ab4ff;">📤 Export Suite</h4>
+                <p>PDF, DOCX, HTML → professionally formatted exports ready for clients.</p>
+            </div>
+
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+    # ------------ PRICING TABLE -------------
+    st.markdown("""
+    <div class="card">
+        <h3>💰 Pricing</h3>
+
+        <div style="display:flex; gap:20px; flex-wrap:wrap; text-align:center;">
+
+            <div style="flex:1; min-width:250px; background:#1d1f23; padding:25px; 
+                        border-radius:10px; border:1px solid #333;">
+                <h2 style="color:#8ab4ff;">Free</h2>
+                <p style="color:#ccc;">Basic features</p>
+                <h3 style="color:white;">$0</h3>
+                <p>• Upload configs<br>• Basic parsing<br>• JSON output</p>
+            </div>
+
+            <div style="flex:1; min-width:250px; background:#24272b; padding:25px; 
+                        border-radius:10px; border:2px solid #5b9bff; box-shadow:0 0 15px #5b9bff60;">
+                <h2 style="color:#5b9bff;">Pro</h2>
+                <p style="color:#ccc;">Full AI power</p>
+                <h3 style="color:white;">$19/mo</h3>
+                <p>• Security Audit<br>• Topology Mapping<br>• Export Suite<br>• Priority Access</p>
+            </div>
+
+            <div style="flex:1; min-width:250px; background:#1d1f23; padding:25px; 
+                        border-radius:10px; border:1px solid #333;">
+                <h2 style="color:#8a64ff;">Enterprise</h2>
+                <p style="color:#ccc;">Teams & companies</p>
+                <h3 style="color:white;">Contact</h3>
+                <p>• Multi-tenant<br>• SSO<br>• Branding<br>• Advanced analytics</p>
+            </div>
+
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+    # ------------ FOOTER -------------
+    st.markdown("""
+    <div style="text-align:center; padding:25px; color:#8a8a8a;">
+        © 2025 NetDoc AI • Created by Uday • Powered by OpenAI
+    </div>
+    """, unsafe_allow_html=True)
+
+# -----------------------------------------------------------
 # PAGE: UPLOAD
 # -----------------------------------------------------------
-if page == "Upload":
+elif page == "Upload":
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("### 📁 Upload Configuration Files")
 
