@@ -52,28 +52,32 @@ def signup_user(email: str, password: str):
 
 
 # ---------------------------------------------------------------
-# Login User
+# Login User  (FIXED — Always returns 3 values)
 # ---------------------------------------------------------------
 def login_user(email: str, password: str):
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
 
+    # user not found
     if not user:
         db.close()
-        return False, "User not found."
+        return False, "User not found.", 0
 
+    # wrong password
     if not verify_password(password, user.password_hash):
         db.close()
-        return False, "Incorrect password."
+        return False, "Incorrect password.", 0
 
-    # Set session state
+    # set session data
     st.session_state["user_id"] = user.id
     st.session_state["email"] = user.email
     st.session_state["is_admin"] = bool(user.is_admin)
     st.session_state["logged_in"] = True
 
+    is_admin_flag = 1 if user.is_admin else 0
+
     db.close()
-    return True, "Login successful."
+    return True, "Login successful.", is_admin_flag
 
 
 # ---------------------------------------------------------------
@@ -94,10 +98,10 @@ def current_user():
 
     db = SessionLocal()
 
-    # EAGER LOAD organization to avoid DetachedInstanceError
+    # eager-load organization to avoid DetachedInstanceError
     user = (
         db.query(User)
-        .options(joinedload(User.organization))  # <--- FIX HERE
+        .options(joinedload(User.organization))
         .filter(User.id == st.session_state["user_id"])
         .first()
     )
