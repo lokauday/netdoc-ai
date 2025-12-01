@@ -1,65 +1,106 @@
-/* ============================================================
-   NetDoc AI — Global Dark Mode CSS
-   Premium UI styling (Datadog Inspired)
-   ============================================================ */
+/* ==============================================
+   NetDoc AI — Global Enterprise Theme
+   Inspired by Datadog / Cisco Meraki 
+   =============================================== */
 
+:root {
+    --bg: #0f1115;
+    --bg-dark: #0b0d10;
+    --panel: #1a1d24;
+    --panel-light: #232730;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --text: #e5e7eb;
+    --text-muted: #9ca3af;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --radius: 10px;
+    --shadow: 0px 4px 14px rgba(0,0,0,0.4);
+}
+
+/* Reset */
 body {
-    background-color: #1a1d21 !important;
-    color: #ffffff !important;
+    background-color: var(--bg) !important;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
 }
 
-.block-container {
-    padding-top: 2rem !important;
+/* Sidebar */
+.css-1d391kg {
+    background-color: var(--panel) !important;
+    padding: 25px 10px;
+    border-right: 1px solid #2b2f37;
 }
 
-.stMarkdown, .stDataFrame, .stTextArea, .stJson, .stDownloadButton {
-    background: #2a2d32 !important;
-    padding: 1rem !important;
-    border-radius: 10px !important;
-}
-
-.stButton>button {
-    background: #4e8cff !important;
-    color: white !important;
-    border-radius: 8px;
-    padding: 0.6rem 1.2rem;
-    font-size: 15px;
-    border: none;
+/* Sidebar Buttons */
+.stButton > button {
+    width: 100%;
+    border-radius: var(--radius);
+    background-color: var(--panel-light);
+    border: 1px solid #2b2f37;
+    padding: 0.6rem 1rem;
+    transition: 0.2s ease;
+    color: var(--text);
     font-weight: 600;
-    cursor: pointer;
+}
+.stButton > button:hover {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: white;
 }
 
-.stButton>button:hover {
-    background: #6fa3ff !important;
+/* Cards */
+.netdoc-card {
+    background: var(--panel);
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
 }
 
-input {
-    background: #2f3338 !important;
-    color: white !important;
-    border-radius: 6px !important;
-    border: 1px solid #555 !important;
+/* Titles */
+h1, h2, h3 {
+    color: var(--text);
+    font-weight: 800 !important;
 }
 
-textarea {
-    background: #2f3338 !important;
-    color: white !important;
-    border-radius: 6px !important;
-    border: 1px solid #555 !important;
+/* Inputs */
+.stTextInput > div > div > input,
+.stTextArea > div > textarea {
+    background-color: var(--panel-light) !important;
+    border-radius: var(--radius);
+    border: 1px solid #2b2f37 !important;
+    color: var(--text) !important;
 }
 
-.stExpander {
-    background-color: #2a2d32 !important;
-    border-radius: 8px !important;
-    padding: 0.6rem !important;
+/* Metric Cards */
+.metric-box {
+    background-color: var(--panel);
+    padding: 18px;
+    border-radius: var(--radius);
+    text-align: center;
+    box-shadow: var(--shadow);
+    transition: 0.2s;
+}
+.metric-box:hover {
+    background-color: var(--panel-light);
+    transform: translateY(-3px);
 }
 
-.css-1d391kg, .css-1lcbmhc {
-    background-color: #131518 !important;
-    color: white !important;
+/* Links */
+a {
+    color: var(--accent);
+    font-weight: 600;
+}
+a:hover {
+    color: var(--accent-hover);
 }
 
-.mermaid {
-    background-color: #24272b !important;
-    padding: 1rem !important;
-    border-radius: 8px !important;
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.4s ease-in-out;
+}
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0px); }
 }
