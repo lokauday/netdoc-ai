@@ -1,122 +1,161 @@
-# ===============================================================
-#  NetDoc AI — ADMIN ENGINE (Admin Panel / User Management)
-# ===============================================================
-
 import streamlit as st
-from database import SessionLocal, User, Upload, AuditReport
-from auth_engine import require_admin
+from database import SessionLocal, User, Organization, Upload, AuditReport
+from sqlalchemy import func
 
+# ===============================================================
+#  PROFESSIONAL ADMIN PANEL
+# ===============================================================
 
-# ---------------------------------------------------------------
-# Get all users
-# ---------------------------------------------------------------
-def get_all_users():
-    db = SessionLocal()
-    users = db.query(User).order_by(User.created_at.desc()).all()
-    db.close()
-    return users
-
-
-# ---------------------------------------------------------------
-# Delete user
-# ---------------------------------------------------------------
-def delete_user(user_id: int):
-    db = SessionLocal()
-    user = db.query(User).filter(User.id == user_id).first()
-
-    if user:
-        db.delete(user)
-        db.commit()
-
-    db.close()
-
-
-# ---------------------------------------------------------------
-# Toggle admin status
-# ---------------------------------------------------------------
-def toggle_admin(user_id: int):
-    db = SessionLocal()
-    user = db.query(User).filter(User.id == user_id).first()
-
-    if user:
-        user.is_admin = 0 if user.is_admin else 1
-        db.commit()
-
-    db.close()
-
-
-# ---------------------------------------------------------------
-# Admin Page UI
-# ---------------------------------------------------------------
 def admin_page():
-    require_admin()   # Protect access
 
-    st.title("🔐 Admin Panel")
-    st.subheader("Manage Users, Uploads & Audit Reports")
+    # Check admin privileges
+    from auth_engine import current_user
+    user = current_user()
 
-    st.divider()
+    if not user or user.is_admin != 1:
+        st.error("❌ Access denied — Admins only.")
+        return
 
-    # ===========================================================
-    #  USER MANAGEMENT SECTION
-    # ===========================================================
-    st.header("👥 User Accounts")
+    st.title("🛠 Admin Control Panel")
 
-    users = get_all_users()
-
-    for user in users:
-        col1, col2, col3, col4 = st.columns([4, 2, 2, 2])
-
-        with col1:
-            st.write(f"**{user.email}**")
-            st.caption(f"User ID: {user.id}")
-
-        with col2:
-            st.write("Admin" if user.is_admin else "User")
-
-        with col3:
-            if st.button(
-                "Toggle Admin",
-                key=f"toggle_admin_{user.id}",
-                use_container_width=True
-            ):
-                toggle_admin(user.id)
-                st.rerun()
-
-        with col4:
-            if st.button(
-                "Delete",
-                key=f"delete_user_{user.id}",
-                use_container_width=True
-            ):
-                delete_user(user.id)
-                st.rerun()
-
-    st.divider()
-
-    # ===========================================================
-    #  UPLOADS SECTION
-    # ===========================================================
-    st.header("📄 Uploaded Config Files")
+    st.markdown("""
+        <style>
+            .admin-card {
+                background: #2a2d35;
+                padding: 18px;
+                border-radius: 14px;
+                border: 1px solid #3c404a;
+                text-align: left;
+                margin-bottom: 20px;
+                transition: 0.2s ease;
+            }
+            .admin-card:hover {
+                background: #363a45;
+                transform: translateY(-3px);
+            }
+            .admin-title {
+                font-size: 14px;
+                opacity: 0.8;
+            }
+            .admin-value {
+                font-size: 26px;
+                font-weight: 700;
+                margin-top: 8px;
+            }
+            .table-box {
+                background: #23262d;
+                padding: 20px;
+                border-radius: 12px;
+                border: 1px solid #333740;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
     db = SessionLocal()
-    uploads = db.query(Upload).order_by(Upload.created_at.desc()).all()
 
-    for item in uploads:
-        with st.expander(f"📌 {item.filename} — User {item.user_id}"):
-            st.code(item.content)
+    # ===============================================================
+    #  ADMIN STATS
+    # ===============================================================
+    st.markdown("## 📊 Platform Overview")
 
-    st.divider()
+    total_users = db.query(func.count(User.id)).scalar()
+    total_orgs = db.query(func.count(Organization.id)).scalar()
+    total_uploads = db.query(func.count(Upload.id)).scalar()
+    total_audits = db.query(func.count(AuditReport.id)).scalar()
 
-    # ===========================================================
-    #  AUDIT REPORTS SECTION
-    # ===========================================================
-    st.header("📊 Audit Reports")
+    col1, col2, col3, col4 = st.columns(4)
 
-    audits = db.query(AuditReport).order_by(AuditReport.created_at.desc()).all()
+    with col1:
+        st.markdown(f"""
+            <div class="admin-card">
+                <div class="admin-title">Total Users</div>
+                <div class="admin-value">{total_users}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+            <div class="admin-card">
+                <div class="admin-title">Organizations</div>
+                <div class="admin-value">{total_orgs}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+            <div class="admin-card">
+                <div class="admin-title">Files Uploaded</div>
+                <div class="admin-value">{total_uploads}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown(f"""
+            <div class="admin-card">
+                <div class="admin-title">Security Audits</div>
+                <div class="admin-value">{total_audits}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # ===============================================================
+    #  USER MANAGEMENT TABLE
+    # ===============================================================
+    st.markdown("## 👥 User Management")
+
+    users = db.query(User).all()
+
+    st.markdown("<div class='table-box'>", unsafe_allow_html=True)
+
+    # Table header
+    st.markdown("### Users List")
+
+    user_emails = [u.email for u in users]
+    selected_user = st.selectbox("Select User", user_emails)
+
+    user_obj = next((u for u in users if u.email == selected_user), None)
+
+    if user_obj:
+        st.write("### User Details")
+        st.write(f"**Email:** {user_obj.email}")
+        st.write(f"**Org ID:** {user_obj.org_id}")
+        st.write(f"**Admin:** {'Yes' if user_obj.is_admin else 'No'}")
+        st.write(f"**Created:** {user_obj.created_at}")
+
+        # Toggle Admin
+        make_admin = st.checkbox("Grant Admin Access", value=user_obj.is_admin == 1)
+
+        if st.button("Update Role"):
+            user_obj.is_admin = 1 if make_admin else 0
+            db.commit()
+            st.success("User role updated!")
+            st.rerun()
+
+        # Delete user
+        if st.button("Delete User ❌"):
+            db.delete(user_obj)
+            db.commit()
+            st.warning("User deleted!")
+            st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ===============================================================
+    #  RECENT ACTIVITY LOG
+    # ===============================================================
+    st.markdown("## 🕒 Recent Uploads")
+
+    recent_uploads = (
+        db.query(Upload)
+        .order_by(Upload.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    if recent_uploads:
+        for u in recent_uploads:
+            st.info(f"📄 {u.filename} — User {u.user_id} — {u.created_at}")
+    else:
+        st.write("No uploads found.")
+
     db.close()
 
-    for audit in audits:
-        with st.expander(f"📝 Report ID {audit.id} — User {audit.user_id}"):
-            st.json(audit.audit_json)
-
-    st.success("Admin panel loaded successfully.")
