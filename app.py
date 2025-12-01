@@ -176,6 +176,12 @@ protected_pages = ["dashboard", "audit", "topology", "admin"]
 # Show sidebar only on logged-in pages
 if st.session_state.page in protected_pages:
     render_sidebar()
+from components.top_nav import top_nav
+
+user = current_user()
+if user:
+    top_nav(user.email)
+
 
 
 # ---------------- ROUTES ----------------
