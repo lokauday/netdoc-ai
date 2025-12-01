@@ -3,11 +3,13 @@
 # ===============================================================
 
 import streamlit as st
+
+# Internal imports
 from auth_engine import login_user, signup_user, logout, current_user
 from admin_engine import admin_page
 from database import init_db
 
-# Import external page modules
+# External page modules
 from app_pages.dashboard import dashboard_page
 from app_pages.audit_page import audit_page
 from app_pages.topology_page import topology_page
@@ -39,26 +41,95 @@ load_css()
 
 
 # ---------------------------------------------------------------
-# INITIALIZE DATABASE
+# INIT DATABASE
 # ---------------------------------------------------------------
 init_db()
 
 
-# =====================================================================
-#  SIMPLE PAGE NAVIGATION SYSTEM
-# =====================================================================
+# ---------------------------------------------------------------
+# SESSION STATE DEFAULTS
+# ---------------------------------------------------------------
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
+if "is_admin" not in st.session_state:
+    st.session_state.is_admin = False
 
+
+# ---------------------------------------------------------------
+# MODERN SIDEBAR (Step 2)
+# ---------------------------------------------------------------
+def render_sidebar():
+
+    st.markdown("""
+        <style>
+        .sidebar-icon { font-size: 1.2rem; margin-right: 8px; }
+        .sidebar-btn {
+            background-color: #2a2d35;
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: 0.2s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            border: 1px solid #3d414c;
+            color: white;
+        }
+        .sidebar-btn:hover {
+            background-color: #5c6bc0;
+            border-color: #5c6bc0;
+            color: white !important;
+            transform: translateX(4px);
+            cursor: pointer;
+        }
+        .active {
+            background-color: #5360d9 !important;
+            color: white !important;
+            border-color: #5360d9;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.sidebar.markdown("## 🔧 Navigation")
+
+    # ---- Internal function for nav buttons ----
+    def nav_button(page, label, icon):
+        css = "sidebar-btn"
+        if st.session_state.page == page:
+            css += " active"
+
+        if st.sidebar.button(f"{icon}  {label}", key=page):
+            st.session_state.page = page
+            st.rerun()
+
+    # ---- Buttons ----
+    nav_button("dashboard", "Dashboard", "🏠")
+    nav_button("audit", "Upload & Audit", "📤")
+    nav_button("topology", "Topology Map", "🌐")
+
+    if st.session_state.get("is_admin"):
+        nav_button("admin", "Admin Panel", "🛠")
+
+    st.sidebar.markdown("---")
+
+    if st.sidebar.button("🚪 Logout"):
+        logout()
+        st.session_state.page = "login"
+        st.rerun()
+
+
+# ---------------------------------------------------------------
+# UTIL: Go to page
+# ---------------------------------------------------------------
 def goto(page_name: str):
     st.session_state.page = page_name
     st.rerun()
 
 
-# =====================================================================
-#  LOGIN PAGE
-# =====================================================================
+# ---------------------------------------------------------------
+# LOGIN PAGE
+# ---------------------------------------------------------------
 def login_page():
     st.title("🔐 NetDoc AI — Login")
 
@@ -66,19 +137,21 @@ def login_page():
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        ok, msg = login_user(email, password)
+        ok, msg, is_admin = login_user(email, password)
         st.info(msg)
-        if ok:
-            goto("dashboard")
 
-    st.write("Don't have an account?")
+        if ok:
+            st.session_state.is_admin = is_admin
+            st.session_state.page = "dashboard"
+            st.rerun()
+
     if st.button("Create Account"):
         goto("signup")
 
 
-# =====================================================================
-#  SIGNUP PAGE
-# =====================================================================
+# ---------------------------------------------------------------
+# SIGNUP PAGE
+# ---------------------------------------------------------------
 def signup_page():
     st.title("📝 Create an Account")
 
@@ -95,10 +168,17 @@ def signup_page():
         goto("login")
 
 
-# =====================================================================
-#  ROUTER — DIRECTS TO EXTERNAL PAGES
-# =====================================================================
+# ---------------------------------------------------------------
+# ROUTER — PROTECTED PAGES
+# ---------------------------------------------------------------
+protected_pages = ["dashboard", "audit", "topology", "admin"]
 
+# Show sidebar only on logged-in pages
+if st.session_state.page in protected_pages:
+    render_sidebar()
+
+
+# ---------------- ROUTES ----------------
 page = st.session_state.page
 
 if page == "login":
@@ -108,13 +188,13 @@ elif page == "signup":
     signup_page()
 
 elif page == "dashboard":
-    dashboard_page()        # from app_pages/dashboard.py
+    dashboard_page()
 
 elif page == "audit":
-    audit_page()            # from app_pages/audit_page.py
+    audit_page()
 
 elif page == "topology":
-    topology_page()         # from app_pages/topology_page.py
+    topology_page()
 
 elif page == "admin":
-    admin_page()            # from admin_engine.py
+    admin_page()
