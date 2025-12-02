@@ -6,6 +6,6 @@ python-dotenv
 requests
 reportlab
 python-docx
-mermaid-js
 pysnmp
 plotly
+pandas
