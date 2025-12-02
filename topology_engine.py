@@ -1,41 +1,53 @@
-# ============================================================
-#  NETWORK TOPOLOGY GENERATOR (Mermaid.js)
-# ============================================================
+# ===============================================================
+#  NetDoc AI — Topology Engine (Mermaid Generation)
+#  FIXED: Works with raw config STRING (NOT dict)
+# ===============================================================
 
-def generate_topology_mermaid(parsed):
+def generate_topology_mermaid(raw_config: str):
     """
-    parsed["cdp_neighbors"] expected:
-    {
-        "Gig1/0/1": {"device": "CORE1", "port": "Gig0/1"},
-        "Gig1/0/2": {"device": "Access1", "port": "Eth1"},
-        ...
-    }
+    Input is ALWAYS a raw config string.
+    This version does NOT expect parsed['raw'] or parsed.get().
     """
 
-    neighbors = parsed.get("cdp_neighbors", {})
-    hostname = parsed.get("hostname", "Device")
+    # Basic example topology extraction
+    # (Replace with real CDP/LLDP/NDP parsing later)
 
-    mermaid = ["graph TD"]
+    lines = raw_config.splitlines()
 
-    # Add main device node
-    mermaid.append(f'    {hostname}["{hostname}"]')
+    connections = []
+    hostname = "Device"
 
-    # Build links
-    for local_intf, info in neighbors.items():
-        remote_dev = info.get("device", "Unknown")
-        remote_intf = info.get("port", "")
+    # Try to extract hostname
+    for line in lines:
+        if line.lower().startswith("hostname"):
+            hostname = line.split()[1]
+            break
 
-        # Add remote node
-        mermaid.append(f'    {remote_dev}["{remote_dev}"]')
+    # Try to extract simple neighbor patterns
+    for line in lines:
+        if "GigabitEthernet" in line and "connect" in line.lower():
+            try:
+                parts = line.split()
+                local_int = parts[0]
+                remote = parts[-1]
+                connections.append((local_int, remote))
+            except:
+                pass
 
-        # Create a labeled connection
-        mermaid.append(
-            f'    {hostname} -- "{local_intf} ↔ {remote_intf}" --> {remote_dev}'
-        )
+    # If nothing found, build a simple single-node graph
+    if not connections:
+        return f"""
+flowchart TD
+    {hostname}["{hostname}"]
+"""
 
-    # If no neighbors, show placeholder
-    if not neighbors:
-        mermaid.append('    Empty["No CDP/LLDP neighbors detected"]')
-        mermaid.append(f"    {hostname} --> Empty")
+    # Build Mermaid diagram
+    topo = "flowchart TD\n"
 
-    return "\n".join(mermaid)
+    for local, remote in connections:
+        safe_local = local.replace("/", "_")
+        safe_remote = remote.replace("/", "_")
+
+        topo += f'    {safe_local}["{local}"] --> {safe_remote}["{remote}"]\n'
+
+    return topo
