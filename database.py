@@ -37,7 +37,7 @@ class Organization(Base):
     org_name = Column(String, unique=True, nullable=False)
 
     # Billing
-    plan = Column(String, default="free")                
+    plan = Column(String, default="free")
     stripe_customer_id = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -110,6 +110,57 @@ class AuditReport(Base):
 
     user = relationship("User", back_populates="audits")
     organization = relationship("Organization", back_populates="audits")
+
+
+# ===============================================================
+#  ANNOUNCEMENTS TABLE  **(NEW)**
+# ===============================================================
+class Announcement(Base):
+    __tablename__ = "announcements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+# ===============================================================
+#  SNMP DEVICE TABLE
+# ===============================================================
+class SNMPDevice(Base):
+    __tablename__ = "snmp_devices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    ip_address = Column(String, nullable=False)
+    community = Column(String, nullable=False)
+    snmp_version = Column(String, default="2c")
+    location = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    polls = relationship("SNMPPoll", back_populates="device")
+
+
+# ===============================================================
+#  SNMP POLLING HISTORY TABLE
+# ===============================================================
+class SNMPPoll(Base):
+    __tablename__ = "snmp_polls"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey("snmp_devices.id"))
+
+    cpu = Column(Integer)
+    memory = Column(Integer)
+    uptime = Column(Integer)
+    in_octets = Column(Integer)
+    out_octets = Column(Integer)
+
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
+    device = relationship("SNMPDevice", back_populates="polls")
+
 
 
 # ===============================================================

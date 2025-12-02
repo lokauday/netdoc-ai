@@ -1,161 +1,119 @@
+# ===============================================================
+#  NetDoc AI — Admin Panel
+# ===============================================================
+
 import streamlit as st
-from database import SessionLocal, User, Organization, Upload, AuditReport
-from sqlalchemy import func
+from auth_engine import require_admin
+from announcement_engine import (
+    create_announcement,
+    list_announcements,
+    delete_announcement,
+)
+
+# SNMP UI imports
+from database import SNMPDevice, SessionLocal
+
 
 # ===============================================================
-#  PROFESSIONAL ADMIN PANEL
+#  SNMP DEVICE MANAGEMENT UI
 # ===============================================================
+def admin_snmp_ui():
+    st.subheader("🌐 SNMP Device Manager")
 
-def admin_page():
+    name = st.text_input("Device Name")
+    ip = st.text_input("IP Address")
+    community = st.text_input("Community String", type="password")
+    location = st.text_input("Location")
+    desc = st.text_area("Description")
 
-    # Check admin privileges
-    from auth_engine import current_user
-    user = current_user()
+    if st.button("Add SNMP Device"):
+        if not (name.strip() and ip.strip() and community.strip()):
+            st.error("Name, IP, and Community String are required.")
+        else:
+            db = SessionLocal()
+            dev = SNMPDevice(
+                name=name,
+                ip_address=ip,
+                community=community,
+                location=location,
+                description=desc
+            )
+            db.add(dev)
+            db.commit()
+            db.close()
+            st.success("Device added successfully!")
+            st.experimental_rerun()
 
-    if not user or user.is_admin != 1:
-        st.error("❌ Access denied — Admins only.")
-        return
-
-    st.title("🛠 Admin Control Panel")
-
-    st.markdown("""
-        <style>
-            .admin-card {
-                background: #2a2d35;
-                padding: 18px;
-                border-radius: 14px;
-                border: 1px solid #3c404a;
-                text-align: left;
-                margin-bottom: 20px;
-                transition: 0.2s ease;
-            }
-            .admin-card:hover {
-                background: #363a45;
-                transform: translateY(-3px);
-            }
-            .admin-title {
-                font-size: 14px;
-                opacity: 0.8;
-            }
-            .admin-value {
-                font-size: 26px;
-                font-weight: 700;
-                margin-top: 8px;
-            }
-            .table-box {
-                background: #23262d;
-                padding: 20px;
-                border-radius: 12px;
-                border: 1px solid #333740;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+    st.markdown("---")
+    st.subheader("📋 Current SNMP Devices")
 
     db = SessionLocal()
-
-    # ===============================================================
-    #  ADMIN STATS
-    # ===============================================================
-    st.markdown("## 📊 Platform Overview")
-
-    total_users = db.query(func.count(User.id)).scalar()
-    total_orgs = db.query(func.count(Organization.id)).scalar()
-    total_uploads = db.query(func.count(Upload.id)).scalar()
-    total_audits = db.query(func.count(AuditReport.id)).scalar()
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.markdown(f"""
-            <div class="admin-card">
-                <div class="admin-title">Total Users</div>
-                <div class="admin-value">{total_users}</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown(f"""
-            <div class="admin-card">
-                <div class="admin-title">Organizations</div>
-                <div class="admin-value">{total_orgs}</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown(f"""
-            <div class="admin-card">
-                <div class="admin-title">Files Uploaded</div>
-                <div class="admin-value">{total_uploads}</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        st.markdown(f"""
-            <div class="admin-card">
-                <div class="admin-title">Security Audits</div>
-                <div class="admin-value">{total_audits}</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # ===============================================================
-    #  USER MANAGEMENT TABLE
-    # ===============================================================
-    st.markdown("## 👥 User Management")
-
-    users = db.query(User).all()
-
-    st.markdown("<div class='table-box'>", unsafe_allow_html=True)
-
-    # Table header
-    st.markdown("### Users List")
-
-    user_emails = [u.email for u in users]
-    selected_user = st.selectbox("Select User", user_emails)
-
-    user_obj = next((u for u in users if u.email == selected_user), None)
-
-    if user_obj:
-        st.write("### User Details")
-        st.write(f"**Email:** {user_obj.email}")
-        st.write(f"**Org ID:** {user_obj.org_id}")
-        st.write(f"**Admin:** {'Yes' if user_obj.is_admin else 'No'}")
-        st.write(f"**Created:** {user_obj.created_at}")
-
-        # Toggle Admin
-        make_admin = st.checkbox("Grant Admin Access", value=user_obj.is_admin == 1)
-
-        if st.button("Update Role"):
-            user_obj.is_admin = 1 if make_admin else 0
-            db.commit()
-            st.success("User role updated!")
-            st.rerun()
-
-        # Delete user
-        if st.button("Delete User ❌"):
-            db.delete(user_obj)
-            db.commit()
-            st.warning("User deleted!")
-            st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # ===============================================================
-    #  RECENT ACTIVITY LOG
-    # ===============================================================
-    st.markdown("## 🕒 Recent Uploads")
-
-    recent_uploads = (
-        db.query(Upload)
-        .order_by(Upload.created_at.desc())
-        .limit(10)
-        .all()
-    )
-
-    if recent_uploads:
-        for u in recent_uploads:
-            st.info(f"📄 {u.filename} — User {u.user_id} — {u.created_at}")
-    else:
-        st.write("No uploads found.")
-
+    devices = db.query(SNMPDevice).all()
     db.close()
 
+    if not devices:
+        st.info("No SNMP devices added yet.")
+    else:
+        for d in devices:
+            st.markdown(f"""
+            **{d.name}**  
+            🌐 {d.ip_address}  
+            📍 {d.location or '—'}  
+            📝 {d.description or '—'}  
+            ---
+            """)
+
+
+# ===============================================================
+#  ADMIN PAGE
+# ===============================================================
+def admin_page():
+    require_admin()
+
+    st.title("🛠 Admin Control Center")
+    st.markdown("Manage announcements, users, SNMP devices, and system settings.")
+
+    # -----------------------------------------------------------
+    # ANNOUNCEMENT SECTION
+    # -----------------------------------------------------------
+    st.subheader("📢 Create Announcement")
+
+    title = st.text_input("Title")
+    msg = st.text_area("Message", height=140)
+
+    if st.button("Send Announcement"):
+        if title.strip() and msg.strip():
+            create_announcement(title, msg)
+            st.success("📢 Announcement sent!")
+            st.experimental_rerun()
+        else:
+            st.error("Please enter a title and message.")
+
+    st.markdown("---")
+    st.subheader("📜 Announcement History (Newest First)")
+
+    anns = list_announcements()
+
+    for ann in anns:
+        with st.container():
+            st.markdown(
+                f"""
+                <div style="padding:15px;background:#212329;border:1px solid #3ea6ff;border-radius:10px;margin-bottom:10px;">
+                    <h4 style="color:#3ea6ff;">{ann.title}</h4>
+                    <p>{ann.message}</p>
+                    <small style="opacity:0.7;">{ann.created_at}</small>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if st.button(f"Delete {ann.id}"):
+                delete_announcement(ann.id)
+                st.experimental_rerun()
+
+    st.markdown("---")
+
+    # -----------------------------------------------------------
+    # SNMP DEVICE MANAGEMENT SECTION
+    # -----------------------------------------------------------
+    admin_snmp_ui()
