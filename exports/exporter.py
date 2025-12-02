@@ -1,29 +1,30 @@
 # ===============================================================
-#  NetDoc AI — Export Engine (FINAL FIXED VERSION)
+#  NetDoc AI — Exporter (JSON / Markdown / HTML / TXT)
 # ===============================================================
 
 import json
-import html
+from datetime import datetime
 
-def export_all_formats(audit_result, topology):
+
+def export_all_formats(audit_result: dict, topology: str) -> dict:
     """
-    FIXED: Accepts two arguments
-        - audit_result (dict)
-        - topology (mermaid string)
-    Returns dictionary containing all export formats.
+    Returns all export formats based on audit_result + topology.
+    audit_result = dict
+    topology = Mermaid topology string
     """
 
-    # JSON
-    json_export = json.dumps(
-        {
-            "audit": audit_result,
-            "topology": topology
-        },
-        indent=4
-    )
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    # MARKDOWN
+    # JSON EXPORT
+    json_export = json.dumps({
+        "timestamp": timestamp,
+        "audit": audit_result,
+        "topology": topology
+    }, indent=4)
+
+    # MARKDOWN EXPORT
     markdown_export = f"""
-# NetDoc AI Audit Report
+# NetDoc AI — Audit Report
+Generated: {timestamp}
 
-## 🔎 Security Audit
+## 🔍 Audit Result (JSON)

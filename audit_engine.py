@@ -1,25 +1,19 @@
 # ===============================================================
-#  NetDoc AI — Security Audit Engine
+#  NetDoc AI — Audit Engine
 # ===============================================================
 
-import json
+def run_security_audit(parsed):
+    if isinstance(parsed, str):
+        raw = parsed
+    else:
+        raw = parsed.get("raw", "")
 
-# ---------------------------------------------------------------
-# MAIN AUDIT FUNCTION
-# ---------------------------------------------------------------
-def run_security_audit(parsed_config: str):
-    """
-    parsed_config is now ALWAYS a plain string (raw config text).
-    """
-
-    raw = parsed_config  # <-- FIXED
-
-    # Very simple demo audit – replace with your real logic
     audit = {
-        "lines": raw.count("\n"),
-        "contains_enable": "enable" in raw.lower(),
-        "contains_password": "password" in raw.lower(),
-        "raw_preview": raw[:200] + "..." if len(raw) > 200 else raw,
+        "line_count": raw.count("\n"),
+        "contains_enable_secret": "enable secret" in raw.lower(),
+        "contains_telnet": "telnet" in raw.lower(),
+        "contains_http": "ip http server" in raw.lower(),
+        "contains_https": "ip http secure-server" in raw.lower(),
     }
 
     return audit
