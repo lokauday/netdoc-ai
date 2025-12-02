@@ -3,6 +3,9 @@ sqlalchemy
 psycopg2-binary
 bcrypt
 python-dotenv
+requests
 reportlab
 python-docx
-requests
+mermaid-js
+pysnmp
+plotly
