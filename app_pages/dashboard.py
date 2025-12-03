@@ -1,76 +1,97 @@
-# app_pages/dashboard.py
-# ===============================================================
-#  NetDoc AI — Dashboard Page
-# ===============================================================
+# ================================
+# /app/app_pages/dashboard.py
+# ================================
 
 import streamlit as st
+from announcement_engine import list_announcements
 from auth_engine import current_user
-from database import SessionLocal, User, Upload, AuditReport
 from components.top_navbar import NAVBAR_HTML
 
 
 def dashboard_page():
-    # -----------------------------
-    # Auth Guard
-    # -----------------------------
+    # Require login
     user = current_user()
     if not user:
-        # If user is not logged in, send them back to main app router
         st.switch_page("app.py")
 
-    # -----------------------------
-    # Top Navbar (HTML, not code)
-    # -----------------------------
-    st.markdown(NAVBAR_HTML, unsafe_allow_html=True)
+    # Announcements
+    anns = list_announcements() or []
+    unread = len(anns)
 
-    # Small spacing under navbar
-    st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
-
-    # -----------------------------
-    # Load basic stats from DB
-    # -----------------------------
-    db = SessionLocal()
-    total_users = db.query(User).count()
-    total_uploads = db.query(Upload).count()
-    total_audits = db.query(AuditReport).count()
-    db.close()
-
-    # -----------------------------
-    # Header
-    # -----------------------------
-    st.title("📊 Dashboard Overview")
-
+    # Top Navbar (single source of truth)
     st.markdown(
-        f"""
-        <div style="margin-bottom: 1rem; font-size: 0.95rem; color:#cfd3dc;">
-            <strong>NetDoc AI</strong><br>
-            {user.email}
-        </div>
-        """,
+        NAVBAR_HTML.format(
+            unread=unread,
+            avatar=user.email[0].upper()
+        ),
         unsafe_allow_html=True,
     )
 
-    # -----------------------------
-    # Metric Cards Row
-    # -----------------------------
+    # ===== MAIN DASHBOARD BODY =====
+    st.title("Welcome back 👋")
+    st.caption("Here’s your NetDoc AI overview.")
+
+    # Metric row
     col1, col2, col3 = st.columns(3)
-
     with col1:
-        st.metric("Total Users", total_users)
-
+        st.metric("Unread Announcements", unread, delta=None)
     with col2:
-        st.metric("Files Uploaded", total_uploads)
-
+        st.metric("Configs Processed", 42, delta="+3 today")
     with col3:
-        st.metric("Audits Run", total_audits)
+        st.metric("Devices Monitored", 18, delta="+1 this week")
 
     st.markdown("---")
 
-    # -----------------------------
-    # Recent Activity placeholder
-    # -----------------------------
-    st.subheader("Recent Activity")
-    if total_audits == 0 and total_uploads == 0:
-        st.write("No recent activity yet. Upload a config on the **Upload & Audit** page to get started.")
-    else:
-        st.write("Activity feed coming soon…")
+    # Layout: left content + right sidebar
+    left, right = st.columns([2.5, 1.5])
+
+    with left:
+        st.subheader("📢 Announcements")
+        if anns:
+            for ann in anns:
+                st.markdown(
+                    f"""
+                    <div style="
+                        padding: 12px 14px;
+                        margin-bottom: 8px;
+                        border-radius: 8px;
+                        background: #1f2125;
+                        border: 1px solid #2b2e36;
+                    ">
+                        <div style="font-weight:600;margin-bottom:4px;">{ann.title}</div>
+                        <div style="font-size:0.9rem;color:#d1d5db;">{ann.body}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("No announcements yet. You’re all caught up ✅")
+
+        st.markdown("---")
+        st.subheader("🚀 Quick Actions")
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            if st.button("➕ Upload Config"):
+                st.session_state["nav_action"] = "upload_config"
+        with col_b:
+            if st.button("🛡 Run Security Audit"):
+                st.session_state["nav_action"] = "security_audit"
+        with col_c:
+            if st.button("🌐 View Topology"):
+                st.session_state["nav_action"] = "view_topology"
+
+    with right:
+        st.subheader("👤 Account")
+        st.markdown(f"**Email:** {user.email}")
+        st.markdown(f"**Role:** {getattr(user, 'role', 'Member')}")
+        st.markdown(f"**Organization:** {getattr(user, 'organization_name', 'N/A')}")
+
+        st.markdown("---")
+        st.subheader("⚡ Tips")
+        st.markdown(
+            """
+            - Use the **Upload Config** action to add new devices.
+            - Run a **Security Audit** after each change window.
+            - Check **Topology** to validate design before rollout.
+            """
+        )
