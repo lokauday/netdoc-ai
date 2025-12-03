@@ -1,99 +1,70 @@
-# ===============================================================
-#  NetDoc AI — Dashboard Page
-# ===============================================================
+# =====================================================================
+#  NetDoc AI — Dashboard Page (Clean + No Syntax Errors)
+# =====================================================================
 
 import streamlit as st
-from auth_engine import current_user, logout
-from database import SessionLocal, Upload, AuditReport, SNMPDevice
+from auth_engine import current_user
+from database import SessionLocal, User, Upload, AuditReport, SNMPDevice
+
 
 # ---------------------------------------------------------------
-# NAVBAR HTML (f-string only)
+# TOP NAVBAR HTML (Safe triple quotes)
 # ---------------------------------------------------------------
-
-def render_navbar(user_email: str):
-    avatar_char = user_email[0].upper()
-
-    navbar_html = f"""
-    <div class="top-nav">
-        <div class="top-left">
-            <img src="https://raw.githubusercontent.com/lokauday/netdoc-ai/main/logo.png" class="netdoc-logo">
-            <span class="app-title">NetDoc AI</span>
-        </div>
-
-        <div class="top-right">
-            <span class="bell">🔔</span>
-            <div class="avatar">{avatar_char}</div>
-        </div>
+NAVBAR_HTML = """
+<div class="top-nav">
+    <div class="top-left">
+        <img src="https://raw.githubusercontent.com/lokauday/netdoc-ai/main/logo.png" class="netdoc-logo">
+        <span class="app-title">NetDoc AI</span>
     </div>
-    """
-
-    st.markdown(navbar_html, unsafe_allow_html=True)
-
-
-# ---------------------------------------------------------------
-# SIDEBAR NAVIGATION
-# ---------------------------------------------------------------
-
-def render_sidebar():
-    st.sidebar.markdown("## 📌 Navigation")
-
-    if st.sidebar.button("📊 Dashboard"):
-        st.session_state.page = "dashboard"
-        st.rerun()
-
-    if st.sidebar.button("📁 Upload & Audit"):
-        st.session_state.page = "audit"
-        st.rerun()
-
-    if st.sidebar.button("🗺 Topology Map"):
-        st.session_state.page = "topology"
-        st.rerun()
-
-    if st.session_state.get("is_admin", False):
-        if st.sidebar.button("🔐 Admin Panel"):
-            st.session_state.page = "admin"
-            st.rerun()
-
-    st.sidebar.markdown("---")
-    if st.sidebar.button("🚪 Logout"):
-        logout()
-        st.session_state.page = "login"
-        st.rerun()
+    <div class="top-right">
+        <span class="bell">🔔</span>
+        <div class="avatar">{avatar_char}</div>
+    </div>
+</div>
+"""
 
 
 # ---------------------------------------------------------------
-# MAIN DASHBOARD
+# DASHBOARD PAGE
 # ---------------------------------------------------------------
-
 def dashboard_page():
+
     user = current_user()
     if not user:
-        st.session_state.page = "login"
-        st.rerun()
+        st.error("You must log in first.")
+        st.stop()
 
-    # Render Layout
-    render_sidebar()
-    render_navbar(user.email)
+    avatar = user.email[0].upper()
 
-    st.markdown("## 📊 Dashboard")
+    # ------------------ NAVBAR ------------------
+    st.markdown(
+        NAVBAR_HTML.format(avatar_char=avatar),
+        unsafe_allow_html=True
+    )
 
-    # -----------------------------------------------------------
-    # Database Counts
-    # -----------------------------------------------------------
+    st.write("")  # small spacing
+
+    st.title("📊 Dashboard")
+
+    # ------------------ DATABASE COUNTS ------------------
     db = SessionLocal()
-    files_uploaded = db.query(Upload).count()
-    audits_run = db.query(AuditReport).count()
-    snmp_devices = db.query(SNMPDevice).count()
+    total_users = db.query(User).count()
+    total_uploads = db.query(Upload).count()
+    total_audits = db.query(AuditReport).count()
+    total_snmp = db.query(SNMPDevice).count()
     db.close()
 
-    # -----------------------------------------------------------
-    # Summary Cards
-    -----------------------------------------------------------
-    col1, col2, col3 = st.columns(3)
+    # ------------------ METRIC CARDS ------------------
+    col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("Files Uploaded", files_uploaded)
-    col2.metric("Audits Run", audits_run)
-    col3.metric("SNMP Devices", snmp_devices)
+    col1.metric("Total Users", total_users)
+    col2.metric("Files Uploaded", total_uploads)
+    col3.metric("Audits Run", total_audits)
+    col4.metric("SNMP Devices", total_snmp)
 
-    st.markdown("### 🕒 Recent Activity")
-    st.info("No recent audits yet. Upload a config file on the **Audit page** to get started.")
+    st.write("## 📌 Recent Activity")
+
+    if total_audits == 0:
+        st.info("No audits yet — upload a config file to get started.")
+    else:
+        st.success("Showing latest audit entries (Coming soon!)")
