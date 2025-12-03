@@ -1,126 +1,180 @@
+# ===============================================================
+#  NetDoc AI — Dashboard Page (Premium UI)
+# ===============================================================
+
 import streamlit as st
-from announcement_engine import list_announcements
-from auth_engine import current_user
-from database import SessionLocal, SNMPDevice, SNMPPoll
-import pandas as pd
-import plotly.express as px
+from auth_engine import current_user, logout
+from database import SessionLocal, SNMPDevice, SNMPPoll, AuditReport
 
 
+# ---------------------------------------------------------------
+# TOP NAV BAR (Global)
+# ---------------------------------------------------------------
+def top_nav():
+    user_email = st.session_state.get("email", "user@example.com")
+    avatar_letter = user_email[0].upper() if user_email else "N"
+
+    st.markdown(
+        f"""
+        <div class="navbar">
+            <div class="nav-title">NetDoc AI</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:13px;opacity:0.8;">{user_email}</span>
+                <div class="nav-avatar" style="
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    background:#11131a;
+                    font-weight:bold;
+                    color:#4a90e2;">
+                    {avatar_letter}
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# ---------------------------------------------------------------
+# SIDEBAR NAVIGATION
+# ---------------------------------------------------------------
+def render_sidebar():
+    with st.sidebar:
+        st.markdown("### ⚡ NetDoc AI")
+        st.markdown("---")
+
+        if st.button("🏠 Dashboard"):
+            st.session_state.page = "dashboard"
+            st.rerun()
+
+        if st.button("📝 Audit Config"):
+            st.session_state.page = "audit"
+            st.rerun()
+
+        if st.button("🌐 Topology Map"):
+            st.session_state.page = "topology"
+            st.rerun()
+
+        # (We’ll add a dedicated SNMP page later)
+        # if st.button("📡 SNMP Devices"):
+        #     st.session_state.page = "snmp"
+        #     st.rerun()
+
+        if st.session_state.get("is_admin"):
+            if st.button("🛠 Admin Panel"):
+                st.session_state.page = "admin"
+                st.rerun()
+
+        if st.button("🚪 Logout"):
+            logout()
+            st.session_state.page = "login"
+            st.rerun()
+
+
+# ---------------------------------------------------------------
+# DASHBOARD DATA HELPERS
+# ---------------------------------------------------------------
+def get_dashboard_stats():
+    db = SessionLocal()
+    try:
+        audits_count = db.query(AuditReport).count()
+        devices_count = db.query(SNMPDevice).count()
+        alerts_count = 0  # placeholder for future SNMP alerts table
+    finally:
+        db.close()
+    return audits_count, devices_count, alerts_count
+
+
+def get_recent_audits(limit: int = 5):
+    db = SessionLocal()
+    try:
+        audits = (
+            db.query(AuditReport)
+            .order_by(AuditReport.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+    finally:
+        db.close()
+    return audits
+
+
+# ---------------------------------------------------------------
+# MAIN DASHBOARD PAGE
+# ---------------------------------------------------------------
 def dashboard_page():
-
+    # Auth guard
     user = current_user()
     if not user:
-        st.switch_page("app.py")
+        st.session_state.page = "login"
+        st.rerun()
 
-    anns = list_announcements()
-    unread = len(anns)
+    # Layout chrome
+    top_nav()
+    render_sidebar()
 
-    # ----------------------------------
-    # TOP NAV BAR
-    # ----------------------------------
-    st.markdown(f"""
-    <div class="top-nav">
-        <div class="top-left">
-            <img src="/app/static/logo.png" class="netdoc-logo">
-            <span class="app-title">NetDoc AI Dashboard</span>
-        </div>
-        <div class="top-right">
-            <div class="bell">🔔</div>
-            <div class="badge">{unread}</div>
-            <div class="avatar">{user.email[0].upper()}</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.title("📊 Dashboard")
 
-    # ----------------------------------
-    # ANNOUNCEMENT DRAWER
-    # ----------------------------------
-    with st.expander(f"📢 Announcements ({unread})"):
-        for ann in anns:
+    # Metric cards
+    audits_count, devices_count, alerts_count = get_dashboard_stats()
+
+    st.markdown("### Network Summary")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-label">Audits Run</div>
+                <div class="metric-value">{}</div>
+            </div>
+            """.format(audits_count),
+            unsafe_allow_html=True,
+        )
+
+    with col2:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-label">SNMP Devices</div>
+                <div class="metric-value">{}</div>
+            </div>
+            """.format(devices_count),
+            unsafe_allow_html=True,
+        )
+
+    with col3:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-label">Active Alerts</div>
+                <div class="metric-value">{}</div>
+            </div>
+            """.format(alerts_count),
+            unsafe_allow_html=True,
+        )
+
+    # Recent activity block
+    st.markdown("### Recent Activity")
+
+    audits = get_recent_audits()
+
+    if not audits:
+        st.markdown(
+            '<div class="card">No recent audits yet. Upload a config on the Audit page to get started.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        for a in audits:
             st.markdown(
                 f"""
-                <div style="padding:15px;background:#1f2125;border-left:4px solid #3ea6ff;margin-bottom:10px;border-radius:8px;">
-                    <strong style="color:#3ea6ff;">{ann.title}</strong>
-                    <p>{ann.message}</p>
+                <div class="card">
+                    <div><strong>Audit ID:</strong> {a.id}</div>
+                    <div><strong>Organization:</strong> {a.organization.org_name if a.organization else 'N/A'}</div>
+                    <div><strong>Created:</strong> {a.created_at}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-
-    st.subheader("📊 Network Overview")
-    st.write("Your main dashboard metrics will appear here soon.")
-
-    # ----------------------------------
-    # CALL SNMP UI SECTION
-    # ----------------------------------
-    dashboard_snmp_ui()
-
-
-
-# =====================================================
-# SNMP DEVICE HEALTH UI
-# =====================================================
-def dashboard_snmp_ui():
-
-    st.subheader("📡 SNMP Device Health")
-
-    # Load devices
-    db = SessionLocal()
-    devices = db.query(SNMPDevice).all()
-    db.close()
-
-    if not devices:
-        st.info("No SNMP devices added yet.")
-        return
-
-    device_names = {d.name: d.id for d in devices}
-    selected = st.selectbox("Select Device", list(device_names.keys()))
-
-    dev_id = device_names[selected]
-
-    # Load polling history
-    db = SessionLocal()
-    polls = (
-        db.query(SNMPPoll)
-        .filter(SNMPPoll.device_id == dev_id)
-        .order_by(SNMPPoll.timestamp)
-        .all()
-    )
-    db.close()
-
-    if not polls:
-        st.warning("No polling data available yet.")
-        return
-
-    # Build DataFrame
-    df = pd.DataFrame([
-        {
-            "timestamp": p.timestamp,
-            "cpu": p.cpu,
-            "memory": p.memory,
-            "in": p.in_octets,
-            "out": p.out_octets
-        }
-        for p in polls
-    ])
-
-    # Charts
-    st.plotly_chart(
-        px.line(df, x="timestamp", y="cpu", title="CPU Usage (%)"),
-        use_container_width=True
-    )
-
-    st.plotly_chart(
-        px.line(df, x="timestamp", y="memory", title="Memory Usage (%)"),
-        use_container_width=True
-    )
-
-    st.plotly_chart(
-        px.line(df, x="timestamp", y="in", title="Inbound Traffic (Octets)"),
-        use_container_width=True
-    )
-
-    st.plotly_chart(
-        px.line(df, x="timestamp", y="out", title="Outbound Traffic (Octets)"),
-        use_container_width=True
-    )
