@@ -18,11 +18,26 @@ def dashboard_page():
     anns = list_announcements() or []
     unread = len(anns)
 
-    # Top Navbar (single source of truth)
+    # ----------------------------
+    # Safe avatar initial
+    # ----------------------------
+    email = getattr(user, "email", "") or ""
+    full_name = getattr(user, "full_name", "") or getattr(user, "name", "") or ""
+
+    avatar_char = "U"  # default fallback
+
+    if email.strip():
+        avatar_char = email.strip()[0].upper()
+    elif full_name.strip():
+        avatar_char = full_name.strip()[0].upper()
+
+    # ----------------------------
+    # Top Navbar (component)
+    # ----------------------------
     st.markdown(
         NAVBAR_HTML.format(
             unread=unread,
-            avatar=user.email[0].upper()
+            avatar=avatar_char,
         ),
         unsafe_allow_html=True,
     )
@@ -45,6 +60,9 @@ def dashboard_page():
     # Layout: left content + right sidebar
     left, right = st.columns([2.5, 1.5])
 
+    # ----------------------------
+    # LEFT: Announcements + Actions
+    # ----------------------------
     with left:
         st.subheader("📢 Announcements")
         if anns:
@@ -80,9 +98,12 @@ def dashboard_page():
             if st.button("🌐 View Topology"):
                 st.session_state["nav_action"] = "view_topology"
 
+    # ----------------------------
+    # RIGHT: Account + Tips
+    # ----------------------------
     with right:
         st.subheader("👤 Account")
-        st.markdown(f"**Email:** {user.email}")
+        st.markdown(f"**Email:** {email or 'N/A'}")
         st.markdown(f"**Role:** {getattr(user, 'role', 'Member')}")
         st.markdown(f"**Organization:** {getattr(user, 'organization_name', 'N/A')}")
 
