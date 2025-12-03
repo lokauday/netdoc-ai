@@ -37,36 +37,36 @@ def top_nav():
 
 
 # ---------------------------------------------------------------
-# SIDEBAR NAVIGATION
+# SIDEBAR NAVIGATION  (FIXED WITH UNIQUE BUTTON KEYS)
 # ---------------------------------------------------------------
 def render_sidebar():
     with st.sidebar:
         st.markdown("### ⚡ NetDoc AI")
         st.markdown("---")
 
-        if st.button("🏠 Dashboard"):
+        if st.button("🏠 Dashboard", key="sidebar_dashboard"):
             st.session_state.page = "dashboard"
             st.rerun()
 
-        if st.button("📝 Audit Config"):
+        if st.button("📝 Audit Config", key="sidebar_audit"):
             st.session_state.page = "audit"
             st.rerun()
 
-        if st.button("🌐 Topology Map"):
+        if st.button("🌐 Topology Map", key="sidebar_topology"):
             st.session_state.page = "topology"
             st.rerun()
 
-        # (We’ll add a dedicated SNMP page later)
-        # if st.button("📡 SNMP Devices"):
-        #     st.session_state.page = "snmp"
-        #     st.rerun()
+        # Future SNMP page
+        if st.button("📡 SNMP Devices", key="sidebar_snmp"):
+            st.session_state.page = "snmp"
+            st.rerun()
 
         if st.session_state.get("is_admin"):
-            if st.button("🛠 Admin Panel"):
+            if st.button("🛠 Admin Panel", key="sidebar_admin"):
                 st.session_state.page = "admin"
                 st.rerun()
 
-        if st.button("🚪 Logout"):
+        if st.button("🚪 Logout", key="sidebar_logout"):
             logout()
             st.session_state.page = "login"
             st.rerun()
