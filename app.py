@@ -39,6 +39,20 @@ def load_css():
 
 load_css()
 
+# ---------------------------------------------------------------
+# TOP NAV BAR (Global)
+# ---------------------------------------------------------------
+def top_nav():
+    st.markdown(
+        """
+        <div class="navbar">
+            <div class="nav-title">NetDoc AI</div>
+            <img src="https://i.imgur.com/Spd0bQx.png" class="nav-avatar">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 # ---------------------------------------------------------------
 # INIT DATABASE
@@ -148,6 +162,8 @@ def login_page():
     if st.button("Create Account"):
         goto("signup")
 
+
+top_nav()
 
 # ---------------------------------------------------------------
 # SIGNUP PAGE

@@ -1,213 +1,144 @@
-/* ===========================================================
-   GLOBAL THEME
-   =========================================================== */
-body, .stApp {
-    background-color: #1a1d21 !important;
+/* ============================================================
+   NetDoc AI — Global UI Theme (Dark Mode)
+   Premium SaaS Styling
+   ============================================================ */
+
+/* GLOBAL LAYOUT */
+body {
+    background-color: #0e1117 !important;
     color: #ffffff !important;
+    font-family: "Inter", sans-serif;
 }
 
-/* Remove padding on mobile */
-@media (max-width: 600px) {
-    .block-container {
-        padding: 0.8rem 0.8rem !important;
-    }
+.stApp {
+    background-color: #0e1117 !important;
 }
 
+/* SIDEBAR */
+section[data-testid="stSidebar"] {
+    background-color: #11131a !important;
+    padding: 20px;
+    border-right: 1px solid #1e212a;
+}
 
-/* ===========================================================
-   TOP NAVBAR
-   =========================================================== */
+section[data-testid="stSidebar"] .css-1n76uvr {
+    color: white !important;
+}
 
-.top-nav {
-    background: #1f2125;
-    padding: 12px 22px;
-    border-radius: 12px;
+.stSidebar button {
+    background-color: #1a1f2e !important;
+    color: white !important;
+    border-radius: 10px;
+    padding: 10px !important;
+    width: 100%;
+    margin-bottom: 8px;
+    border: 1px solid #2b3348;
+}
+
+.stSidebar button:hover {
+    background-color: #2b3348 !important;
+    transform: scale(1.02);
+}
+
+/* TOP NAV BAR */
+.navbar {
+    background-color: #11131a;
+    padding: 12px 25px;
+    border-bottom: 1px solid #1f222c;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    border: 1px solid #32343a;
 }
 
-.top-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.nav-title {
+    font-size: 20px;
+    font-weight: 600;
 }
 
-.netdoc-logo {
-    height: 38px;
+.nav-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #4a90e2;
 }
 
-.app-title {
-    font-size: 22px;
-    font-weight: 700;
-}
-
-/* MOBILE — shrink navbar */
-@media (max-width: 600px) {
-    .app-title {
-        font-size: 16px;
-    }
-    .netdoc-logo {
-        height: 28px;
-    }
-}
-
-.top-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.avatar {
-    background: #4a4d52;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.bell {
-    font-size: 22px;
-}
-
-.badge {
-    background: red;
-    padding: 1px 5px;
-    font-size: 11px;
-    border-radius: 8px;
-}
-
-
-/* ===========================================================
-   SIDEBAR RESPONSIVE
-   =========================================================== */
-
-@media (max-width: 600px) {
-    /* minimize sidebar width */
-    section[data-testid="stSidebar"] {
-        width: 72px !important;
-    }
-
-    /* hide text labels, show emojis */
-    .sidebar-btn {
-        font-size: 0 !important;
-    }
-    .sidebar-btn::after {
-        font-size: 24px;
-    }
-}
-
-
-/* ===========================================================
-   DASHBOARD CARDS
-   =========================================================== */
-
-.stat-card {
-    background: #23262d;
+/* CARDS */
+.card {
+    background-color: #131722;
+    border: 1px solid #1e2430;
+    border-radius: 12px;
     padding: 20px;
+    margin-bottom: 20px;
+    transition: 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    border-color: #4a90e2;
+}
+
+/* METRIC CARDS */
+.metric-card {
+    background: linear-gradient(145deg, #1b2030, #10131c);
+    padding: 18px;
     border-radius: 14px;
-    text-align: center;
-    border: 1px solid #33363e;
-    margin-bottom: 16px;
+    border: 1px solid #232837;
+    box-shadow: 0px 2px 4px rgba(0,0,0,0.3);
 }
 
-/* Mobile cards full width */
-@media (max-width: 600px) {
-    .stat-card {
-        padding: 15px;
-    }
-    .stat-card h3 {
-        font-size: 14px;
-    }
-    .stat-card p {
-        font-size: 22px;
-    }
+.metric-value {
+    font-size: 26px;
+    font-weight: bold;
+    margin-top: 5px;
 }
 
-
-/* ===========================================================
-   PANELS (Audit, Topology, Admin, etc.)
-   =========================================================== */
-
-.panel {
-    background: #23262d !important;
-    padding: 18px !important;
-    border-radius: 14px !important;
-    border: 1px solid #343840 !important;
+.metric-label {
+    font-size: 14px;
+    opacity: 0.7;
 }
 
-/* Responsive two-column layouts → stack on mobile */
-@media (max-width: 600px) {
-    .css-1lcbmhc, .css-1kyxreq { /* Streamlit column wrapper */
-        flex-direction: column !important;
-    }
+/* HEADERS */
+h1, h2, h3, h4 {
+    color: #e8eaed;
 }
 
-
-/* ===========================================================
-   UPLOAD BOX
-   =========================================================== */
-
-.upload-box {
-    border: 2px dashed #5c6bc0 !important;
-    padding: 35px !important;
-    border-radius: 14px !important;
-    text-align: center !important;
+/* FILE UPLOADER customizing */
+[data-testid="stFileUploaderDropzone"] {
+    background-color: #131722 !important;
+    border: 2px dashed #2f3545 !important;
 }
 
-/* Mobile resizing */
-@media (max-width: 600px) {
-    .upload-box {
-        padding: 20px !important;
-        font-size: 14px !important;
-    }
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: #4a90e2 !important;
 }
 
-
-/* ===========================================================
-   TOPOLOGY GRAPH
-   =========================================================== */
-
-.mermaid-box {
-    background: #1d1f24 !important;
-    padding: 16px !important;
-    border-radius: 12px !important;
-    overflow-x: auto !important;
+/* BUTTONS */
+.stButton > button {
+    background-color: #4a90e2 !important;
+    color: white !important;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 15px;
+    border: none;
 }
 
-/* Graph adjusts to screen width */
-.mermaid {
-    max-width: 100% !important;
+.stButton > button:hover {
+    background-color: #3574b8 !important;
 }
 
-
-/* ===========================================================
-   TABLES (Admin Users, Activity logs)
-   =========================================================== */
-
-.table-box {
-    overflow-x: auto;
+/* TABLES */
+.dataframe {
+    color: white !important;
 }
 
-@media (max-width: 600px) {
-    .table-box {
-        font-size: 12px;
-    }
+/* JSON Box */
+[data-testid="stJson"] {
+    background-color: #0e1117 !important;
+    border-radius: 10px;
+    padding: 15px;
 }
 
-
-/* ===========================================================
-   BUTTONS
-   =========================================================== */
-button[kind="primary"] {
-    padding: 12px 20px !important;
-    border-radius: 12px !important;
-}
-
-@media (max-width: 600px) {
-    button[kind="primary"] {
-        width: 100% !important;
-    }
+/* MERMAID DIAGRAMS */
+code {
+    color: #66ccff;
 }
