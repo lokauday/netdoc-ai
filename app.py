@@ -9,10 +9,13 @@ from auth_engine import login_user, signup_user, logout, current_user
 from admin_engine import admin_page
 from database import init_db
 
-# External page modules
+# External pages
 from app_pages.dashboard import dashboard_page
-from app_pages.audit_page import audit_page
+from app_pages.upload_and_audit import upload_and_audit_page
 from app_pages.topology_page import topology_page
+
+# Top navigation bar component
+from components.top_nav import top_nav
 
 
 # ---------------------------------------------------------------
@@ -26,32 +29,17 @@ st.set_page_config(
 
 
 # ---------------------------------------------------------------
-# LOAD GLOBAL CSS
+# GLOBAL CSS
 # ---------------------------------------------------------------
 def load_css():
     try:
         with open("static/global.css", "r") as f:
-            css = f"<style>{f.read()}</style>"
-            st.markdown(css, unsafe_allow_html=True)
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except:
         pass
 
 
 load_css()
-
-# ---------------------------------------------------------------
-# TOP NAV BAR (Global)
-# ---------------------------------------------------------------
-def top_nav():
-    st.markdown(
-        """
-        <div class="navbar">
-            <div class="nav-title">NetDoc AI</div>
-            <img src="https://i.imgur.com/Spd0bQx.png" class="nav-avatar">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 
 # ---------------------------------------------------------------
@@ -61,7 +49,7 @@ init_db()
 
 
 # ---------------------------------------------------------------
-# SESSION STATE DEFAULTS
+# SESSION DEFAULTS
 # ---------------------------------------------------------------
 if "page" not in st.session_state:
     st.session_state.page = "login"
@@ -71,10 +59,9 @@ if "is_admin" not in st.session_state:
 
 
 # ---------------------------------------------------------------
-# MODERN SIDEBAR (Step 2)
+# SIDEBAR NAVIGATION
 # ---------------------------------------------------------------
 def render_sidebar():
-
     st.markdown("""
         <style>
         .sidebar-icon { font-size: 1.2rem; margin-right: 8px; }
@@ -107,7 +94,6 @@ def render_sidebar():
 
     st.sidebar.markdown("## 🔧 Navigation")
 
-    # ---- Internal function for nav buttons ----
     def nav_button(page, label, icon):
         css = "sidebar-btn"
         if st.session_state.page == page:
@@ -117,7 +103,6 @@ def render_sidebar():
             st.session_state.page = page
             st.rerun()
 
-    # ---- Buttons ----
     nav_button("dashboard", "Dashboard", "🏠")
     nav_button("audit", "Upload & Audit", "📤")
     nav_button("topology", "Topology Map", "🌐")
@@ -134,7 +119,7 @@ def render_sidebar():
 
 
 # ---------------------------------------------------------------
-# UTIL: Go to page
+# HELPERS
 # ---------------------------------------------------------------
 def goto(page_name: str):
     st.session_state.page = page_name
@@ -163,8 +148,6 @@ def login_page():
         goto("signup")
 
 
-top_nav()
-
 # ---------------------------------------------------------------
 # SIGNUP PAGE
 # ---------------------------------------------------------------
@@ -185,24 +168,23 @@ def signup_page():
 
 
 # ---------------------------------------------------------------
-# ROUTER — PROTECTED PAGES
+# PROTECTED ROUTES
 # ---------------------------------------------------------------
 protected_pages = ["dashboard", "audit", "topology", "admin"]
 
-# Show sidebar only on logged-in pages
-if st.session_state.page in protected_pages:
-    render_sidebar()
-from components.top_nav import top_nav
-
-user = current_user()
-if user:
-    top_nav(user.email)
-
-
-
-# ---------------- ROUTES ----------------
 page = st.session_state.page
 
+user = current_user()
+
+# Show sidebar + top nav on logged-in pages
+if page in protected_pages and user:
+    render_sidebar()
+    top_nav(user.email)  # global nav bar
+
+
+# ---------------------------------------------------------------
+# ROUTING
+# ---------------------------------------------------------------
 if page == "login":
     login_page()
 
@@ -213,7 +195,7 @@ elif page == "dashboard":
     dashboard_page()
 
 elif page == "audit":
-    audit_page()
+    upload_and_audit_page()
 
 elif page == "topology":
     topology_page()

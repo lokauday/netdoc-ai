@@ -1,110 +1,165 @@
-# ===============================================================
-#  NetDoc AI — CONFIG PARSER (Cisco / Juniper / Arista)
-# ===============================================================
+# ============================================================
+#  NetDoc AI — Config Parser (Cisco / Fortinet / Generic)
+# ============================================================
 
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import List, Optional, Dict
 import re
 
 
-# ---------------------------------------------------------------
-# Clean config text
-# ---------------------------------------------------------------
-def clean_config(text: str) -> str:
-    lines = text.splitlines()
+@dataclass
+class Interface:
+    name: str
+    ip: Optional[str] = None
+    description: Optional[str] = None
+    neighbors: List[str] = field(default_factory=list)
 
-    cleaned = []
-    for line in lines:
-        line = line.rstrip()
 
-        # Skip empty & noisy lines
-        if not line:
+@dataclass
+class Device:
+    hostname: str
+    vendor: str = "generic"
+    interfaces: List[Interface] = field(default_factory=list)
+
+
+HOSTNAME_RE = re.compile(r"^hostname\s+(\S+)", re.IGNORECASE)
+INT_RE = re.compile(r"^interface\s+(.+)", re.IGNORECASE)
+IP_RE = re.compile(r"ip address\s+(\d+\.\d+\.\d+\.\d+)", re.IGNORECASE)
+DESC_RE = re.compile(r"description\s+(.+)", re.IGNORECASE)
+
+# Fortinet-style
+FGT_EDIT_IF_RE = re.compile(r'^edit\s+"([^"]+)"')
+FGT_SET_IP_RE = re.compile(r"set ip\s+(\d+\.\d+\.\d+\.\d+)")
+FGT_SET_DESC_RE = re.compile(r"set alias\s+\"?(.+?)\"?$", re.IGNORECASE)
+
+
+def _parse_cisco_device(lines: List[str]) -> Device:
+    hostname = "DEVICE"
+    interfaces: List[Interface] = []
+    current_int: Optional[Interface] = None
+
+    for raw in lines:
+        line = raw.rstrip()
+
+        m = HOSTNAME_RE.match(line.strip())
+        if m:
+            hostname = m.group(1)
             continue
-        if line.startswith("!"):
+
+        m = INT_RE.match(line.strip())
+        if m:
+            # start new interface
+            current_int = Interface(name=m.group(1))
+            interfaces.append(current_int)
             continue
-        if line.startswith("#"):
+
+        if current_int:
+            m = DESC_RE.search(line)
+            if m:
+                current_int.description = m.group(1).strip()
+                continue
+
+            m = IP_RE.search(line)
+            if m and not current_int.ip:
+                current_int.ip = m.group(1).strip()
+                continue
+
+            # crude CDP/LLDP neighbor extraction if present in description
+            # e.g. "to SW1 Gi1/0/1"
+            if current_int.description:
+                words = current_int.description.split()
+                for w in words:
+                    if w.isupper() and len(w) <= 10 and w != hostname:
+                        if w not in current_int.neighbors:
+                            current_int.neighbors.append(w)
+
+    return Device(hostname=hostname, vendor="cisco", interfaces=interfaces)
+
+
+def _parse_fortinet_device(lines: List[str]) -> Device:
+    hostname = "FGT"
+    interfaces: List[Interface] = []
+    current_int: Optional[Interface] = None
+    in_sys_global = False
+
+    for raw in lines:
+        line = raw.strip()
+
+        if line.lower().startswith("config system global"):
+            in_sys_global = True
             continue
 
-        cleaned.append(line)
+        if in_sys_global and line.lower().startswith("set hostname"):
+            parts = line.split()
+            if len(parts) >= 3:
+                hostname = parts[2].strip('"')
+            continue
 
-    return "\n".join(cleaned)
+        if line.lower().startswith("config system interface"):
+            # interface section coming up
+            continue
 
+        m = FGT_EDIT_IF_RE.match(line)
+        if m:
+            current_int = Interface(name=m.group(1))
+            interfaces.append(current_int)
+            continue
 
-# ---------------------------------------------------------------
-# Extract hostname
-# ---------------------------------------------------------------
-def extract_hostname(text: str) -> str:
-    match = re.search(r"hostname (\S+)", text)
-    return match.group(1) if match else "UnknownDevice"
+        if current_int:
+            m = FGT_SET_IP_RE.search(line)
+            if m and not current_int.ip:
+                current_int.ip = m.group(1)
+                continue
 
+            m = FGT_SET_DESC_RE.search(line)
+            if m:
+                current_int.description = m.group(1).strip()
+                continue
 
-# ---------------------------------------------------------------
-# Extract VLANs
-# ---------------------------------------------------------------
-def extract_vlans(text: str) -> list:
-    return re.findall(r"vlan (\d+)", text)
-
-
-# ---------------------------------------------------------------
-# Extract interfaces
-# ---------------------------------------------------------------
-def extract_interfaces(text: str) -> list:
-    matches = re.findall(r"interface (\S+)", text)
-    return matches
-
-
-# ---------------------------------------------------------------
-# Extract OSPF process IDs
-# ---------------------------------------------------------------
-def extract_ospf(text: str) -> list:
-    return re.findall(r"router ospf (\d+)", text)
+    return Device(hostname=hostname, vendor="fortinet", interfaces=interfaces)
 
 
-# ---------------------------------------------------------------
-# Extract BGP AS numbers
-# ---------------------------------------------------------------
-def extract_bgp(text: str) -> list:
-    return re.findall(r"router bgp (\d+)", text)
+def detect_vendor(config_text: str) -> str:
+    text = config_text.lower()
+    if "config system interface" in text or "fortigate" in text:
+        return "fortinet"
+    if "version" in text and "cisco ios" in text:
+        return "cisco"
+    if "hostname" in text and "interface" in text:
+        return "cisco"
+    return "generic"
 
 
-# ---------------------------------------------------------------
-# Extract ACL names / numbers
-# ---------------------------------------------------------------
-def extract_acls(text: str) -> list:
-    acl1 = re.findall(r"access-list (\S+)", text)
-    acl2 = re.findall(r"ip access-list (\S+)", text)
-    return list(set(acl1 + acl2))
-
-
-# ---------------------------------------------------------------
-# Extract CDP / LLDP neighbors
-# ---------------------------------------------------------------
-def extract_neighbors(text: str) -> list:
-    cdp = re.findall(r"cdp neighbor (\S+)", text)
-    lldp = re.findall(r"lldp neighbor (\S+)", text)
-    generic = re.findall(r"neighbor (\S+)", text)
-
-    return list(set(cdp + lldp + generic))
-
-
-# ---------------------------------------------------------------
-# FULL CONFIG PARSE ENTRYPOINT
-# ---------------------------------------------------------------
-def parse_config(text: str) -> dict:
+def parse_config(config_text: str) -> List[Device]:
     """
-    Main parser used by ALL modules.
-    Returns normalized structured config data.
+    Parse raw configuration text into a list of Device objects.
+    For now we treat the whole file as a single device, but we
+    keep the list type to support multi-device files later.
     """
+    lines = config_text.splitlines()
+    vendor = detect_vendor(config_text)
 
-    cleaned = clean_config(text)
+    if vendor == "fortinet":
+        dev = _parse_fortinet_device(lines)
+    else:
+        dev = _parse_cisco_device(lines)
 
-    parsed = {
-        "hostname": extract_hostname(cleaned),
-        "interfaces": extract_interfaces(cleaned),
-        "vlans": extract_vlans(cleaned),
-        "ospf": extract_ospf(cleaned),
-        "bgp": extract_bgp(cleaned),
-        "acls": extract_acls(cleaned),
-        "neighbors": extract_neighbors(cleaned),
-        "raw": cleaned
-    }
+    return [dev]
 
-    return parsed
+
+def summarize_devices(devices: List[Device]) -> List[Dict[str, object]]:
+    """
+    Small helper for debugging / JSON previews.
+    """
+    out: List[Dict[str, object]] = []
+    for d in devices:
+        out.append(
+            {
+                "hostname": d.hostname,
+                "vendor": d.vendor,
+                "interface_count": len(d.interfaces),
+            }
+        )
+    return out
