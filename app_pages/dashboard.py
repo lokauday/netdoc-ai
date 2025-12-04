@@ -34,7 +34,9 @@ def dashboard_page():
         st.error("You must log in first.")
         st.stop()
 
-    avatar = user.email[0].upper()
+    # ------------------ SAFE AVATAR ------------------
+    email = user.email or ""                    # handle None or empty string
+    avatar = email[0].upper() if email else "U" # fallback "U" if no email
 
     # ------------------ NAVBAR ------------------
     st.markdown(
