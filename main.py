@@ -78,38 +78,59 @@ def run_security_audit(config_text: str) -> dict:
         "info": info
     }
 
-
-# =====================================================================
-#  TOPOLOGY GENERATOR (Mermaid)
-# =====================================================================
-def generate_topology_mermaid(config_text: str) -> str:
-    """
-    Create a Mermaid topology diagram from config.
-    """
+def generate_topology_mermaid(config_text: str):
+    lines = config_text.splitlines()
 
     devices = set()
     links = []
 
-    # Detect hostnames
-    hostname_match = re.search(r"hostname (\S+)", config_text)
-    main_device = hostname_match.group(1) if hostname_match else "Device"
+    current_device = None
 
-    devices.add(main_device)
+    for line in lines:
+        line = line.strip()
 
-    # Basic link detection for CDP/LLDP neighbors
-    neighbor_matches = re.findall(r"neighbor (\S+)", config_text)
-    for n in neighbor_matches:
-        devices.add(n)
-        links.append((main_device, n))
+        # Detect hostnames
+        if line.startswith("hostname"):
+            current_device = line.split()[1]
+            devices.add(current_device)
+
+        # Detect interface IPs
+        if "ip address" in line and current_device:
+            parts = line.split()
+            try:
+                ip = parts[2]
+            except:
+                continue
+
+            # Create logical node for network segment
+            network_node = f"NET_{ip.split('.')[0]}"
+            devices.add(network_node)
+
+            links.append((current_device, network_node))
+
+        # Detect uplink descriptions like "Link to Firewall"
+        if "description" in line.lower() and current_device:
+            desc = line.lower()
+            if "firewall" in desc:
+                links.append((current_device, "Firewall"))
+                devices.add("Firewall")
+
+            if "core" in desc:
+                links.append((current_device, "Core"))
+                devices.add("Core")
+
+            if "uplink" in desc:
+                links.append((current_device, "Uplink"))
+                devices.add("Uplink")
 
     # Build Mermaid graph
-    mermaid = ["graph TD"]
+    mermaid = ["graph TD;"]
 
-    for d in devices:
-        mermaid.append(f"    {d}")
+    for a in devices:
+        mermaid.append(f'    {a}["{a}"];')
 
-    for a, b in links:
-        mermaid.append(f"    {a} --> {b}")
+    for (a, b) in links:
+        mermaid.append(f"    {a} --> {b};")
 
     return "\n".join(mermaid)
 
